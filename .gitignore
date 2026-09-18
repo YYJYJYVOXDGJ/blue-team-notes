@@ -1,0 +1,24 @@
+# 备份与临时文件
+*.bak
+*.orig
+*.rej
+*.tmp
+*~
+
+# 编辑器与操作系统
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 排查脚本采集产物（现场采集包 / 日志导出 / 内存镜像）
+ir-*/
+*.evtx
+*.dmp
+*.mem
+*.raw
+*.hiv
+
+# 校验草稿
+verify*.txt
