@@ -15,7 +15,8 @@ blue-team-notes/
 │   ├── windows-host-audit.md           # Windows 主机全量应急排查手册（10 章 + 附录）
 │   ├── windows-attack-mapping.md       # Windows 攻击手法映射（ATT&CK for Windows）
 │   ├── windows-hardening.md            # Windows 安全基线核查（CIS / 微软基线对照）
-│   └── windows-forensics-toolchain.md  # 现代应急取证工具链与获取方式
+│   ├── windows-forensics-toolchain.md  # 现代应急取证工具链与获取方式
+│   └── windows-detection-validation.md # 检测能力验证清单（ART / 日志回放）
 ├── scripts/
 │   ├── linux-ir-quickcheck.sh          # Linux 应急响应一键采集（只读）
 │   ├── linux-baseline-check.sh         # Linux 安全基线一键核查（只读）
@@ -63,6 +64,13 @@ blue-team-notes/
    - 内存马与注入：pe-sieve / HollowsHunter；静态分析：capa / FLOSS / DIE / YARA
    - 基线与验证：HardeningKitty（CIS 自动化）、Microsoft Security Compliance Toolkit、Atomic Red Team（检测有效性验证）
 
+7. **检测能力验证（把「写了」变成「验过」）**
+   - `windows-detection-validation.md`：把手册里的每条检测逻辑转成**可执行、可判定、可回归**的用例（V-01 ~ V-63），逐条给出期望日志（Channel / EventID / 关键字段）、命中判定标准与执行风险等级
+   - **14 项日志源自查表**（Sysmon、4104 脚本块、4688 命令行、任务计划、BITS、WMI、终端服务 1149 …），先排除「日志源未开导致假阴性」这一最常见误判
+   - 三条验证路径分级：静态规则验证 → **日志回放**（推荐主力，风险≈0）→ 隔离 VM 受控真跑；高危用例（凭据转储 / 清日志 / 关防护）明确禁止真跑
+   - 三态判定口径（命中 / 半命中 / 未命中）+ 未命中根因排查顺序 + 记录表模板，规则变更即回归
+   - 诚实标注 **8 项已知盲区**（内核 Rootkit、BYOVD、内存马、业务调度平台后门、云身份滥用等），不做「全覆盖」的假承诺
+
 ### 🚀 快速开始
 
 ```bash
@@ -96,6 +104,8 @@ cd scripts && run.bat
 | Windows 应急响应 | `windows-ir-quickcheck.ps1` 采集 → 按 `windows-host-audit.md` 逐层深入 → 用 `windows-attack-mapping.md` 定性手法并核对持久化清单 |
 | Windows 基线巡检 | `windows-baseline-check.ps1` 出问题清单 → 按 `windows-hardening.md` 分级整改 → 复跑确认 |
 | Windows 深度取证 | `windows-forensics-toolchain.md` 选工具 → Hayabusa/Chainsaw 出日志时间线 → EZ Tools 出文件系统时间线 |
+| **Windows 检测能力验证** | `windows-detection-validation.md` §2.1 日志源自查 → 用回放样本验证规则 → 仅对 ★ 项在隔离 VM 真跑 → 按 §5.3 记录表归档 |
+| **检测规则回归** | 修改规则后重跑同批用例 → 对照 §5.3 台账确认无回退 |
 | Linux 应急响应 | `linux-ir-quickcheck.sh` 采集 → 按 `linux-host-audit.md` 逐层深入 → 用 `linux-attack-mapping.md` 定性手法 |
 | Linux 基线巡检 | `linux-baseline-check.sh` 出问题清单 → 按 `linux-hardening.md` 整改 → 复跑确认 |
 | 溯源分析 | `*-attack-mapping.md` 先用现象定位手法 → 回 `*-host-audit.md` 对应章节取证 |
@@ -104,14 +114,16 @@ cd scripts && run.bat
 - 系统：Windows / Linux
 - 脚本：PowerShell / Batch / Shell
 - 检测：Sigma 规则、Sysmon、ETW、ATT&CK 映射
+- 验证：Atomic Red Team、日志回放（Chainsaw / Hayabusa）、日志源基线自查
 - 方向：主机安全审计、入侵检测、应急响应、蓝队攻防
-- 规划：结合 MCP 协议接入 AI Agent，实现自动化巡检与异常研判（设计思路见 `windows/windows-forensics-toolchain.md` 第 5 节）
+- 规划：结合 MCP 协议接入 AI Agent，实现自动化巡检与异常研判（设计思路见 `windows/windows-forensics-toolchain.md` 第 5 节，验证用例集见 `windows/windows-detection-validation.md` 第 9 节）
 
 ### 📖 使用场景
 1. 安全事件应急响应：主机入侵后快速排查攻击痕迹
 2. 攻防演习保障：赛前主机基线巡检、赛中异常定位
 3. 安全评估服务：主机安全配置核查、风险识别
 4. 日常安全运营：常态化主机端口、进程、基线巡检
+5. 检测能力建设：验证自建与社区检测规则的有效性，形成可回归的用例集
 
 ### ⚠️ 说明
-本项目仅用于授权环境下的安全学习与合规审计，禁止用于未授权的系统检测。
+本项目仅用于授权环境下的安全学习与合规审计，禁止用于未授权的系统检测。`windows-detection-validation.md` 中的受控验证部分须在**隔离环境且有书面授权**的前提下进行，详见该文档 §2.4 与附录 A。
