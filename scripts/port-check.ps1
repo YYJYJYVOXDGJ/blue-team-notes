@@ -3,7 +3,8 @@
 .SYNOPSIS
 Windows port listener scanner, list all listening tcp ports and related process
 .DESCRIPTION
-BlueTeam simple host inspection tool, replace netstat + tasklist
+BlueTeam host inspection tool. Get listening TCP ports, match PID and process name automatically.
+Replace manual netstat + tasklist operations, improve on-site emergency response efficiency.
 #>
 
 Write-Host "===== Windows Listening Port Scan =====" -ForegroundColor Cyan
