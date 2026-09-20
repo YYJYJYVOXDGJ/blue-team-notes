@@ -4,7 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey.svg)](#-仓库结构)
-[![Docs](https://img.shields.io/badge/Docs-12-blue.svg)](#-仓库结构)
+[![Docs](https://img.shields.io/badge/Docs-11%20%E4%BB%BD%E6%89%8B%E5%86%8C-blue.svg)](#-仓库结构)
+[![Scripts](https://img.shields.io/badge/Scripts-6%20%E4%B8%AA%E5%8F%AA%E8%AF%BB%E8%84%9A%E6%9C%AC-informational.svg)](#-仓库结构)
 
 ---
 
@@ -18,23 +19,19 @@
 
 ### 🧭 体系总览
 
-```text
-              ┌──────────── 治理支撑（Govern）────────────┐
-              │ 授权与合规 · 制度与流程 · 职责与考核 · 度量  │
-              └───────────────────────────────────────────┘
-                                    │
-   ┌────────────────┬────────────────┬────────────────┐
-   │   预防 Prevent  │   检测 Detect   │   响应 Respond   │
-   ├────────────────┼────────────────┼────────────────┤
-   │ 资产与暴露面     │ 日志基建         │ 流程 SOP         │
-   │ 身份与权限       │ 检测规则         │ 场景预案         │
-   │ 配置基线         │ 主动狩猎         │ 工具与模板       │
-   │ 补丁与漏洞       │ 情报驱动         │ 演练与复盘       │
-   │ 数据与备份       │ 覆盖度度量       │ 恢复与加固       │
-   └────────────────┴────────────────┴────────────────┘
-```
+本仓库按**三层能力 + 一个支撑**组织，不是一堆散落的排查命令：
 
-体系框架、能力地图（含覆盖度自评与缺口）、组织角色 RACI、事件分级与度量指标见 **[`ir/ir-framework.md`](ir/ir-framework.md)**。
+| 层 | 回答的问题 | 主要落地物 |
+|---|---|---|
+| **治理支撑 Govern** | 出事时谁授权、谁决策、谁负责 | `DISCLAIMER.md`、`ir-templates.md`（授权书）、`ir-framework.md` §4/§5 |
+| **预防 Prevent** | 怎么让攻击者进不来、待不住 | `*-hardening.md`（双平台基线核查与加固） |
+| **检测 Detect** | 怎么在他得手前发现他 | `*-attack-mapping.md`、`windows-detection-validation.md` |
+| **响应 Respond** | 出事了按什么流程、用什么工具、写什么文书 | `ir-playbook.md`、`ir-scenarios.md`、`*-host-audit.md`、`scripts/` |
+
+- **完整体系图、能力地图（含覆盖度自评与缺口）、组织角色 RACI、事件分级与度量指标** → [`ir/ir-framework.md`](ir/ir-framework.md)
+- **全仓文档索引（按文档 / 按场景）** → [`ir/ir-framework.md`](ir/ir-framework.md) §8
+
+> 三层之间的关系是**成本递减、代价递增**：预防投入最小、检测次之、响应最贵。缺了预防就要靠检测兜，缺了检测就只能靠响应兜——而响应阶段每多花一小时，损失往往是指数级的。
 
 ### 📂 仓库结构
 
@@ -62,6 +59,8 @@ blue-team-notes/
 │   ├── windows-baseline-check.ps1       # Windows 安全基线一键核查（只读）
 │   ├── port-check.ps1                   # PowerShell 监听端口自动审计脚本
 │   └── run.bat                          # 一键启动脚本
+├── .github/
+│   └── REPO-METADATA.md                 # 仓库 Description / Topics 设置建议（维护者用）
 ├── README.md
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
@@ -77,10 +76,21 @@ blue-team-notes/
    - **文书模板**：应急响应授权书、事件信息记录表、证据交接单（chain of custody）、处置动作记录表、初报/续报/结报、复盘报告、应急联系人表、对内对外通知话术
    - **分级与上报**：P0–P3 定级判据与响应 SLA、升级/降级规则、法定上报义务与时限对照
 
-2. **双平台主机入侵排查（10 章手册）**
-   - 覆盖端口进程、启动项、计划任务、服务、用户账号、登录日志、恶意文件等全维度检查点
-   - 标准化检查清单，适配应急现场快速定位攻击路径
-   - 原生命令优先、标注权限要求、每条都说明「查什么」与「判读要点」
+2. **双平台主机入侵排查（10 章手册，六大维度标准化检查清单）**
+   - **六大维度**逐层覆盖，每个维度都可追溯到手册具体章节：
+
+     | # | 维度 | Linux 落点 | Windows 落点 |
+     |---|---|---|---|
+     | ① | **网络与端口** | §1 网络连接与端口排查 | §1 网络连接与端口排查 |
+     | ② | **进程与内存** | §2 进程与内存排查 | §2 进程与内存排查 |
+     | ③ | **自启动与计划任务** | §3 持久化后门排查（核心） | §3 持久化后门排查（核心） |
+     | ④ | **账号与权限** | §4 用户账号与登录审计 | §4 账号与身份认证审计 |
+     | ⑤ | **登录与系统日志** | §7 日志审计 | §7 事件日志审计 |
+     | ⑥ | **恶意文件与执行痕迹** | §5 命令历史、§6 文件系统与恶意文件 | §5 执行痕迹与时间线、§6 文件系统与恶意文件 |
+
+   - 十大章节全貌：排查前置与取证 → 网络端口 → 进程内存 → 持久化（核心）→ 账号认证 → 执行痕迹 → 文件系统 → 日志 → 应用中间件 → 处置加固，另有附录（现场 Checklist / 离线工具箱 / LOLBins 速查）
+   - 原生命令优先、标注权限要求、每条都说明「查什么」与「判读要点」——是**排查手册**而非命令清单
+   - 同时适配应急现场快速定位与日常基线巡检两种节奏
 
 3. **深度分层：不止于表层命令**
    - **对抗隐藏**：`/proc` 直读绕过被替换的 `netstat`/`ss`、隐藏进程差集、inode 反查；Windows 侧多源进程交叉验证、内核对象比对
@@ -100,12 +110,12 @@ blue-team-notes/
    - **8 项已知盲区**（内核 Rootkit、BYOVD、内存马、业务调度平台后门、云身份滥用等）显式声明
 
 6. **自动化审计脚本（全部只读）**
+   - **端口审计（项目起点脚本）**：`port-check.ps1` —— 把原本需要 `netstat -ano` + `tasklist` 多条命令串联、手工比对 PID 的两步操作，压缩为**一次执行**即输出「监听地址 → 端口 → 进程名 → PID」的关联视图，直接缩短应急现场异常服务定位时间
    - `linux-ir-quickcheck.sh`：采集网络、进程、持久化、账号、文件、日志证据，自动标出隐藏进程、`ld.so.preload`、memfd 无文件进程
    - `linux-baseline-check.sh`：逐项核查账号、SSH、日志审计、文件权限、端口、内核参数、SELinux、持久化位，输出带 `[!]` 的问题清单
-   - `windows-ir-quickcheck.ps1`：自动汇总跨进程链异常、无签名进程、`ServiceDll` 异常、WMI 订阅、隐藏任务、ADS、Internet 来源文件
+   - `windows-ir-quickcheck.ps1`：自动汇总跨进程链异常、无签名进程、`ServiceDll` 异常、WMI 订阅、隐藏任务、ADS、Internet 来源文件；14 项日志源可用性一并核查
    - `windows-baseline-check.ps1`：10 组 70+ 项核查，输出 P0/P1/P2 分级报告
-   - `port-check.ps1`：一键输出监听端口、进程名与 PID，替代 `netstat` + `tasklist` 两步操作
-   - **所有脚本均不修改系统配置、不杀进程、不改防火墙**
+   - **全部脚本只读**：不修改系统配置、不杀进程、不改防火墙、不改注册表（采集产物落地后由人工判读）
 
 7. **业务中间件专项**
    - **XXL-JOB 定时任务排查**：进程与启动参数、调度中心库 `xxl_job_info`（`glue_type` / `glue_source`）、执行器 `gluesource` 目录、accessToken 与默认口令；并给出**自造验证用例**（社区无覆盖）
@@ -137,18 +147,18 @@ blue-team-notes/
 
 **按场景**
 
+> 完整的「场景 → 文档」对照（含各文档的主要读者与使用时机）见 [`ir-framework.md` §8](ir/ir-framework.md#8-全仓文档索引)。这里只列最高频的入口：
+
 | 我现在要做什么 | 看哪份 |
 |---|---|
-| 主机报警了，先固定证据 | `scripts/*-ir-quickcheck.*` |
+| 主机报警了，先固定证据 | `scripts/*-ir-quickcheck.*`（只读采集） |
 | 确认是入侵，需要按流程走 | `ir-playbook.md` |
 | 已确认事件类型（勒索/挖矿/Webshell…） | `ir-scenarios.md` 对应场景 |
 | 不知道该查什么层 | `*-host-audit.md` 第 0 章与目录 |
 | 现象已知，想知道是什么手法 | `*-attack-mapping.md` 现象速查表 |
-| 想知道后门清干净了没有 | `*-attack-mapping.md` 权限维持全量核对清单 |
 | 要写事件报告 / 找授权书 | `ir-templates.md` |
 | 验证检测规则有没有效 | `windows-detection-validation.md` |
 | 要做基线巡检与整改 | `*-hardening.md` |
-| 事件结束了要复盘 | `ir-playbook.md` §7、`ir-templates.md` T6 |
 
 ### 🚀 快速开始
 
@@ -208,14 +218,16 @@ cd scripts && run.bat
 
 ### 🗓️ 版本与路线图
 
-当前版本 **v0.3.0**，变更历史见 [`CHANGELOG.md`](CHANGELOG.md)。
+当前版本 **v0.3.1**，变更历史见 [`CHANGELOG.md`](CHANGELOG.md)。
 
-近期计划：
+近期计划（按优先级）：
 
+- [ ] **数据与备份策略文档**（3-2-1、离线与不可变备份、恢复演练）——**勒索场景的生死线**，也是现有文档反复引用的前提
 - [ ] Linux 侧检测能力验证清单（验证介质：auditd / eBPF / journald）
-- [ ] 数据与备份策略文档（3-2-1、离线与不可变备份、恢复演练）——**勒索场景的生死线**
 - [ ] 应急演练脚本与评分表
 - [ ] 验证用例集机器可读化（JSON），供 MCP + AI Agent 自动执行与判定
+
+> 完整路线图（0–30 / 30–90 / 90–180 天）与能力缺口清单见 [`ir-framework.md` §7](ir/ir-framework.md#7-建设路线图)。
 
 ### ⚖️ 授权与免责
 
