@@ -59,6 +59,15 @@ blue-team-notes/
 │   ├── windows-baseline-check.ps1       # Windows 安全基线一键核查（只读）
 │   ├── port-check.ps1                   # PowerShell 监听端口自动审计脚本
 │   └── run.bat                          # 一键启动脚本
+├── mcp/                                 # MCP / AI Agent 接入（只读能力封装，v0.1.0 可运行）
+│   ├── README.md                        # 设计说明：为什么判定不放进模型、安全底线如何落地
+│   ├── triage.py                        # 本地规则研判引擎（零第三方依赖，离线可用）
+│   ├── guard.py                         # 入参校验 + 审计日志
+│   ├── server.py                        # MCP Server（fastmcp），2 个只读 Tool
+│   ├── selfcheck.py                     # 零依赖自检脚本
+│   ├── rules/triage-rules.yaml          # 研判规则库（10 条，带 ATT&CK 映射 / 误报提示）
+│   ├── docs/面试讲解稿.md                # 讲这个项目的三句话 / 五分钟 / 诚实边界
+│   └── 一键自检.bat                      # Windows 双击运行自检
 ├── .github/
 │   └── REPO-METADATA.md                 # 仓库 Description / Topics 设置建议（维护者用）
 ├── README.md
@@ -205,7 +214,8 @@ cd scripts && run.bat
 - **验证**：Atomic Red Team、日志回放（Chainsaw / Hayabusa）、日志源基线自查
 - **方法论**：NIST CSF 2.0、NIST SP 800-61r3、ISO 27035、等保 2.0、PICERL
 - **方向**：主机安全审计、入侵检测、应急响应、安全运营、蓝队攻防
-- **规划**：结合 MCP 协议接入 AI Agent，实现自动化巡检与异常研判（设计见 `windows/windows-forensics-toolchain.md` §5，验证用例集见 `windows/windows-detection-validation.md` §9）
+- **MCP / AI Agent（v0.1.0 已实现）**：`mcp/` —— 本地规则研判引擎 + 只读 MCP Server，把应急响应排查经验封装成可被 Agent 调用的确定性能力；判定不放进模型，「待人工确认 / 禁止自动处置」硬编码进返回值。设计见 [`windows/windows-forensics-toolchain.md`](windows/windows-forensics-toolchain.md) §5，实现见 [`mcp/README.md`](mcp/README.md)
+- **规划（下一步）**：接入真实日志源（Windows 安全日志 / Linux auditd）、规则库扩到 30+、建立命中率与误报率的效果度量（验证用例集见 `windows/windows-detection-validation.md` §9）
 
 ### 📖 使用场景
 
