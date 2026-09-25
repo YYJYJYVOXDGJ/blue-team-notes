@@ -353,6 +353,12 @@ IR-USB\
 ## 5. 与 AI Agent / MCP 结合的自动化巡检
 
 > 这一节对应项目规划中"结合 MCP 协议接入 AI Agent，实现自动化巡检与异常研判"。
+>
+> **实现状态（v0.1.0，2026-09-24）**：本节的设计已在 [`../mcp/`](../mcp/) 目录落地为可运行代码——
+> 本地规则研判引擎（`triage.py`）+ 安全护栏（`guard.py`）+ 只读 MCP Server（`server.py`，2 个工具）+ 零依赖自检（`selfcheck.py`）。
+> 判定环节不调用任何大模型，返回值中 `human_review_required=True` / `auto_action_allowed=False` 为硬编码。
+> 规则库 10 条，覆盖挖矿、WebShell、持久化、凭据攻击、外连、日志清除等场景。
+> 当前仍为**最小可用版**：尚未接入真实日志源，尚未做效果度量。详见 [`../mcp/README.md`](../mcp/README.md)。
 
 ### 5.1 架构思路
 

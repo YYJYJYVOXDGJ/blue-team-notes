@@ -1,0 +1,267 @@
+- id: MINING-001
+  name: 挖矿进程与矿池通信迹象
+  attack:
+    technique: T1496
+    tactic: Impact
+    name: Resource Hijacking
+  severity: high
+  keywords:
+    any:
+      - xmrig
+      - stratum+tcp
+      - stratum+ssl
+      - minerd
+      - cpuminer
+      - ethminer
+      - sysupdate.exe
+      - kworkerds
+      - donotremove
+    all: []
+  false_positive_hints:
+    - 企业自建的压测程序占用 CPU
+    - 容器/云主机的合法算力调度任务
+  next_steps:
+    - 用任务管理器与 wmic 交叉核对进程名、PID、命令行与父进程（top 命令不可信）
+    - 核对可疑进程的网络连接与外连 IP 归属
+    - 按 linux-attack-mapping.md / windows-attack-mapping.md 的持久化全量清单核对启动项
+
+- id: WEBSHELL-001
+  name: WebShell 落地或访问迹象
+  attack:
+    technique: T1505.003
+    tactic: Persistence
+    name: Web Shell
+  severity: critical
+  keywords:
+    any:
+      - webshell
+      - cmd.asp
+      - cmd.aspx
+      - cmd.jsp
+      - cmd.php
+      - eval(
+      - assert(
+      - base64_decode
+      - system(
+      - /bin/sh
+      - whoami
+      - antsword
+      - 冰蝎
+      - 哥斯拉
+      - 菜刀
+    all: []
+  false_positive_hints:
+    - 应用自身的模板引擎或调试端点
+    - 安全设备的漏洞扫描探测流量
+  next_steps:
+    - 定位 WebShell 文件的创建时间与上传入口（Web 访问日志中同时间的 POST 请求）
+    - 保留文件副本并计算哈希，不要直接删除（删除会丢失证据）
+    - 排查是否已有提权或横向行为
+
+- id: PERSIST-001
+  name: 可疑计划任务创建
+  attack:
+    technique: T1053.005
+    tactic: Persistence
+    name: Scheduled Task
+  severity: medium
+  keywords:
+    any:
+      - schtasks /create
+      - New-ScheduledTask
+      - Register-ScheduledTask
+      - at.exe
+      - cron
+      - crontab
+      - /etc/cron
+    all: []
+  false_positive_hints:
+    - 企业统一运维 Agent 与备份客户端
+    - 系统自身的更新任务
+  next_steps:
+    - 核对任务创建者与创建时间，与可疑登录时间做先后比对
+    - 检查任务指向的可执行文件路径、签名与哈希
+    - 非微软签名且位于临时目录的任务应立即人工复核
+
+- id: PERSIST-002
+  name: 可疑服务创建或服务替换
+  attack:
+    technique: T1543.003
+    tactic: Persistence
+    name: Windows Service
+  severity: medium
+  keywords:
+    any:
+      - sc create
+      - New-Service
+      - ImagePath
+      - 服务已创建
+      - systemd
+      - rc.local
+      - rcN.d
+    all: []
+  false_positive_hints:
+    - 正常的软件安装与升级流程
+  next_steps:
+    - 核对服务 ImagePath 指向的文件是否存在、是否有合法签名
+    - Linux 侧核对 /etc/systemd/system 与 /etc/rc*.d 下的新增项
+    - 与基线快照比对，确认是否为新增
+
+- id: EXEC-001
+  name: 可疑 PowerShell 执行（含编码命令）
+  attack:
+    technique: T1059.001
+    tactic: Execution
+    name: PowerShell
+  severity: high
+  keywords:
+    any:
+      - -enc
+      - -encodedcommand
+      - FromBase64String
+      - IEX(
+      - Invoke-Expression
+      - DownloadString
+      - -nop -w hidden
+      - bypass
+    all: []
+  false_positive_hints:
+    - 管理员正常的自动化运维脚本（应有日志留痕）
+  next_steps:
+    - 确认 4104 脚本块日志与 4688 命令行日志是否已开启，未开启则无法还原内容
+    - 解码后查看实际执行的命令内容
+    - 检查是否存在 AMSI 绕过或日志清除的伴随行为
+
+- id: CRED-001
+  name: 可疑登录与凭据攻击
+  attack:
+    technique: T1110
+    tactic: Credential Access
+    name: Brute Force
+  severity: high
+  keywords:
+    any:
+      - 4625
+      - 登录失败
+      - 暴力破解
+      - 4648
+      - 显式凭据登录
+      - Pass-the-Hash
+      - mimikatz
+      - sekurlsa
+      - lsass
+      - Failed password
+    all: []
+  false_positive_hints:
+    - 用户输错密码、密码到期未改
+    - 服务账号配置错误导致的循环失败
+  next_steps:
+    - 统计失败来源 IP 与失败次数，判断是否为批量扫描
+    - 关注 4625 之后是否出现 4624 成功登录（成功即视为已失陷）
+    - 若涉及域管或特权账号，按 P0/P1 立即升级
+
+- id: C2-001
+  name: 可疑外连与远控通信迹象
+  attack:
+    technique: T1071
+    tactic: Command and Control
+    name: Application Layer Protocol
+  severity: high
+  keywords:
+    any:
+      - beacon
+      - c2
+      - cobalt
+      - metasploit
+      - sliver
+      - havoc
+      - teamsViewer
+      - anydesk
+      - 反向连接
+      - 非业务端口外连
+    all: []
+  false_positive_hints:
+    - 已授权的远程运维工具
+    - 正常业务对外的 API 调用
+  next_steps:
+    - 核对外连 IP/域名的威胁情报（需先取得数据外发授权）
+    - 抓取并保留流量包，确认通信周期与内容特征
+    - 排查该主机是否已产生横向行为
+
+- id: EXEC-002
+  name: 可疑子进程（由应用进程启动命令行）
+  attack:
+    technique: T1059
+    tactic: Execution
+    name: Command and Scripting Interpreter
+  severity: critical
+  keywords:
+    any:
+      - w3wp.exe
+      - sqlservr.exe
+      - winword.exe
+      - excel.exe
+      - mshta
+      - rundll32
+      - regsvr32
+      - certutil
+      - bitsadmin
+    all: []
+  false_positive_hints:
+    - 应用自身的插件机制
+    - 合法的安装程序调用
+  next_steps:
+    - 核对父子进程链：Web/Office 进程不应产生 cmd 或 powershell 子进程
+    - 关注 certutil/bitsadmin 的下载行为（常见白名单程序滥用）
+    - 提取子进程命令行与落地文件路径
+
+- id: COLLECT-001
+  name: 数据打包与外带迹象
+  attack:
+    technique: T1560
+    tactic: Collection
+    name: Archive Collected Data
+  severity: high
+  keywords:
+    any:
+      - rar.exe
+      - 7z.exe
+      - 大流量出向
+      - 压缩打包
+      - 数据库导出
+      - dump
+      - mysqldump
+      - 上传至
+    all: []
+  false_positive_hints:
+    - 正常的备份与归档任务
+    - DBA 的日常导出操作
+  next_steps:
+    - 确认打包内容是否含个人信息或敏感数据（涉及上报义务）
+    - 核查出向流量目标与量级，判断是否已发生外带
+    - 涉及个人信息泄露的按 P0 处理并通知法务
+
+- id: DEFENSE-001
+  name: 日志清除与防御规避
+  attack:
+    technique: T1070.001
+    tactic: Defense Evasion
+    name: Clear Windows Event Logs
+  severity: critical
+  keywords:
+    any:
+      - wevtutil cl
+      - Clear-EventLog
+      - 日志被清除
+      - security log was cleared
+      - 1102
+      - vssadmin delete shadows
+      - wbadmin delete
+      - 删除卷影
+    all: []
+  false_positive_hints:
+    - 日志归档后的正常清理（应有流程记录）
+  next_steps:
+    - 视为高置信度恶意行为，立即按 P0/P1 升级
+    - 检查备份是否同时被删（卷影删除通常是勒索的前置动作）
+    - 从远端日志服务器或 SIEM 侧找回已被本机清除的日志

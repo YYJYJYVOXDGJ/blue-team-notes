@@ -1,0 +1,10 @@
+# MCP Server 运行所需依赖
+
+# 核心：官方 MCP Python SDK（FastMCP）
+# 提供 @mcp.tool() 装饰器、stdio 传输、协议握手
+mcp[cli]>=1.28.1
+
+# 可选：规则文件解析。
+# 未安装时 triage.py 会自动回退到内置的最小 YAML 解析器（零依赖兜底），
+# 因此离线应急环境（U 盘 + 便携 Python）可以只装上面的 mcp 包，甚至不装也能跑 selfcheck.py。
+pyyaml>=6.0

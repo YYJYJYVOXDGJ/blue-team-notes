@@ -1,0 +1,45 @@
+blue-team-notes MCP —— 本地规则引擎自检
+规则文件: C:\Users\13874\Desktop\blue-team-notes-mcp\rules\triage-rules.yaml
+引擎版本: 0.1.0
+YAML 解析: 内置最小解析器（未安装 PyYAML，离线兜底生效）
+已加载规则: 10 条
+
+========================================================================
+【挖矿迹象（EDR 告警）】
+  输入: EDR 检测到进程 sysupdate.exe 持续占用 CPU 98%，该进程对外发起 stratum+tcp...
+  结论: 命中 1 条规则, 最高置信: 挖矿进程与矿池通信迹象(high, medium, ATT&CK T1496)。该结论需人工确认。
+  置信度: medium
+    - [high] 挖矿进程与矿池通信迹象 | ATT&CK T1496 (Impact) | 命中: stratum+tcp、sysupdate.exe
+        建议人工验证: 用任务管理器与 wmic 交叉核对进程名、PID、命令行与父进程（top 命令不可信）
+  安全标记: human_review_required=True, auto_action_allowed=False
+========================================================================
+【WebShell 访问（WAF 告警）】
+  输入: WAF 拦截到对 /uploads/cmd.aspx 的 POST 请求，请求体含 eval( 与 base64...
+  结论: 命中 1 条规则, 最高置信: WebShell 落地或访问迹象(critical, high, ATT&CK T1505.003)。该结论需人工确认。
+  置信度: high
+    - [critical] WebShell 落地或访问迹象 | ATT&CK T1505.003 (Persistence) | 命中: cmd.asp、cmd.aspx、eval(、base64_decode
+        建议人工验证: 定位 WebShell 文件的创建时间与上传入口（Web 访问日志中同时间的 POST 请求）
+  安全标记: human_review_required=True, auto_action_allowed=False
+========================================================================
+【可疑计划任务（Sysmon 告警）】
+  输入: 检测到 schtasks /create 创建计划任务 OfficeUpdate，ImagePath 指向 C:...
+  结论: 命中 3 条规则, 最高置信: 可疑登录与凭据攻击(high, medium, ATT&CK T1110)。该结论需人工确认。
+  置信度: medium
+    - [high] 可疑登录与凭据攻击 | ATT&CK T1110 (Credential Access) | 命中: 4625、登录失败
+        建议人工验证: 统计失败来源 IP 与失败次数，判断是否为批量扫描
+    - [medium] 可疑计划任务创建 | ATT&CK T1053.005 (Persistence) | 命中: schtasks /create
+        建议人工验证: 核对任务创建者与创建时间，与可疑登录时间做先后比对
+    - [medium] 可疑服务创建或服务替换 | ATT&CK T1543.003 (Persistence) | 命中: imagepath
+        建议人工验证: 核对服务 ImagePath 指向的文件是否存在、是否有合法签名
+  安全标记: human_review_required=True, auto_action_allowed=False
+========================================================================
+【正常业务日志（预期不命中）】
+  输入: 应用服务正常启动，数据库连接池初始化完成，健康检查返回 200。...
+  结论: 未命中任何规则, 需人工研判。
+  置信度: none
+  安全标记: human_review_required=True, auto_action_allowed=False
+
+========================================================================
+安全底线校验（人在回路标记恒定）: 通过
+结论: 规则引擎工作正常。安装 mcp 包后即可通过 MCP 协议对外提供能力。
+      pip install "mcp[cli]"  →  python server.py

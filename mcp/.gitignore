@@ -1,0 +1,13 @@
+# 审计日志含调用参数与结果摘要，不入库
+audit/
+*.jsonl
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 编辑器
+.vscode/
+.idea/
