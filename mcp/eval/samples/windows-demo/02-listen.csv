@@ -1,0 +1,5 @@
+﻿"LocalAddress","LocalPort","OwningProcess","Process","Path"
+"0.0.0.0","445","4","System",""
+"0.0.0.0","3389","1180","TermService","C:\Windows\System32\svchost.exe"
+"127.0.0.1","49670","2048","explorer.exe","C:\Windows\explorer.exe"
+"0.0.0.0","4444","4460","svhost32.exe","C:\Users\demo\AppData\Local\Temp\svhost32.exe"

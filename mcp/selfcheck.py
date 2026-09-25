@@ -74,6 +74,57 @@ def show(title: str, text: str, rules: list) -> None:
           % (res["human_review_required"], res["auto_action_allowed"]))
 
 
+def check_pipeline() -> bool:
+    """对内置合成样本跑一遍完整流水线（采集产物 → 归一化 → 研判 → 报告）。
+
+    这是 v0.2 新增的链路自检：验证「解析器 + 适配器 + 规则引擎 + 报告生成」
+    能端到端跑通，且不依赖任何第三方包。
+    """
+    samples_dir = os.path.join(_HERE, "eval", "samples")
+    if not os.path.isdir(samples_dir):
+        print("\n[跳过] 未找到样本目录: %s" % samples_dir)
+        return True
+
+    try:
+        from irflow import run_pipeline
+        from irflow.report import render_text_summary
+    except Exception as e:
+        print("\n[失败] irflow 流水线不可用: %s" % e)
+        return False
+
+    all_ok = True
+    for name in sorted(os.listdir(samples_dir)):
+        case = os.path.join(samples_dir, name)
+        if not os.path.isdir(case):
+            continue
+
+        print("\n" + "=" * 72)
+        print("【流水线】样本: %s" % name)
+        res = run_pipeline(case)
+        if not res.ok:
+            print("  失败: %s" % res.error)
+            all_ok = False
+            continue
+
+        print(render_text_summary(res))
+        print("  按种类记录数:")
+        for k, v in sorted(res.collection.records_by_kind.items(), key=lambda x: -x[1]):
+            print("    %-14s %d" % (k, v))
+        print("  命中的规则:")
+        seen = set()
+        for f in res.findings:
+            rid = (f.get("top_rule") or {}).get("rule_id")
+            if rid and rid not in seen:
+                seen.add(rid)
+                print("    - [%s] %s" % (f.get("severity"), rid))
+
+        if not (res.human_review_required is True and res.auto_action_allowed is False):
+            print("  [失败] 人在回路标记被篡改")
+            all_ok = False
+
+    return all_ok
+
+
 def main() -> int:
     path = triage.DEFAULT_RULES_PATH
     print("blue-team-notes MCP —— 本地规则引擎自检")
@@ -103,10 +154,17 @@ def main() -> int:
         and triage.triage(t, rules=rules)["auto_action_allowed"] is False
         for _, t in SAMPLES
     )
-    print("安全底线校验（人在回路标记恒定）: %s" % ("通过" if ok else "失败"))
-    print("结论: 规则引擎工作正常。安装 mcp 包后即可通过 MCP 协议对外提供能力。")
+    print("安全底线校验（文本入口，人在回路标记恒定）: %s" % ("通过" if ok else "失败"))
+
+    pipe_ok = check_pipeline()
+    print("\n" + "=" * 72)
+    print("安全底线校验（流水线入口，人在回路标记恒定）: %s"
+          % ("通过" if pipe_ok else "失败"))
+    print("结论: %s" % ("规则引擎与流水线工作正常。" if (ok and pipe_ok)
+                      else "存在失败项，见上方输出。"))
+    print("      安装 mcp 包后即可通过 MCP 协议对外提供能力：")
     print("      pip install \"mcp[cli]\"  →  python server.py")
-    return 0 if ok else 1
+    return 0 if (ok and pipe_ok) else 1
 
 
 if __name__ == "__main__":

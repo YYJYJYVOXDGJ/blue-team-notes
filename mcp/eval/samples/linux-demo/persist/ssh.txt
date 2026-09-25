@@ -1,0 +1,15 @@
+===== authorized_keys =====
+-rw------- 1 root root 96 Sep 25 14:00 /root/.ssh/authorized_keys
+-- content --
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDemoKeyForEvaluationOnly000000000000 attacker@example
+-rw-r--r-- 1 deploy deploy 96 Sep 20 09:11 /home/deploy/.ssh/authorized_keys
+-- content --
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDemoKeyForEvaluationOnly000 deploy@build-server
+
+===== 高危 authorized_keys 选项 =====
+
+===== sshd_config 关键项 =====
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+Port 22

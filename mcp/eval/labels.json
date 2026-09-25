@@ -1,0 +1,43 @@
+{
+  "_comment": "规则库效果评估的标注集。每份样本标注：应该命中哪些规则（expected_rules），以及明确不允许命中的规则（must_not_match）。样本全部为合成数据，不含任何真实环境信息。",
+  "_metrics": "recall = 命中期望规则数 / 期望规则数；precision = 命中期望规则数 / 总命中规则数（含意外命中）。",
+
+  "windows-demo": {
+    "description": "模拟 Windows 主机被植入远控 + 多重持久化（隐藏计划任务、Run 键、服务、IFEO、WMI 订阅）",
+    "expected_rules": [
+      "PROC-001",
+      "PROC-002",
+      "EXEC-001",
+      "NET-001",
+      "NET-002",
+      "NET-003",
+      "PERSIST-003",
+      "PERSIST-004",
+      "PERSIST-005",
+      "PERSIST-006",
+      "PERSIST-007",
+      "PERSIST-009",
+      "CFG-002"
+    ],
+    "must_not_match": []
+  },
+
+  "linux-demo": {
+    "description": "模拟 Linux 主机被植入挖矿/后门：隐藏进程、已删除可执行文件、SUID 后门、UID 0 账号、SSH 公钥、cron 与 systemd 持久化、日志被篡改",
+    "expected_rules": [
+      "PROC-003",
+      "PROC-004",
+      "NET-001",
+      "NET-003",
+      "PERSIST-010",
+      "PERSIST-011",
+      "PERSIST-012",
+      "ACCT-001",
+      "ACCT-002",
+      "FILE-001",
+      "MOD-001",
+      "DEFENSE-002"
+    ],
+    "must_not_match": []
+  }
+}

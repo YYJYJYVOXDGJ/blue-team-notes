@@ -6,6 +6,8 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey.svg)](#-仓库结构)
 [![Docs](https://img.shields.io/badge/Docs-11%20%E4%BB%BD%E6%89%8B%E5%86%8C-blue.svg)](#-仓库结构)
 [![Scripts](https://img.shields.io/badge/Scripts-6%20%E4%B8%AA%E5%8F%AA%E8%AF%BB%E8%84%9A%E6%9C%AC-informational.svg)](#-仓库结构)
+[![MCP](https://img.shields.io/badge/MCP-v0.2.0%20%E5%8F%AF%E8%BF%90%E8%A1%8C-blueviolet.svg)](#-仓库结构)
+[![Rules](https://img.shields.io/badge/Rules-40%20%E6%9D%A1-informational.svg)](#-仓库结构)
 
 ---
 
@@ -59,14 +61,21 @@ blue-team-notes/
 │   ├── windows-baseline-check.ps1       # Windows 安全基线一键核查（只读）
 │   ├── port-check.ps1                   # PowerShell 监听端口自动审计脚本
 │   └── run.bat                          # 一键启动脚本
-├── mcp/                                 # MCP / AI Agent 接入（只读能力封装，v0.1.0 可运行）
+├── mcp/                                 # MCP / AI Agent 接入 + 数据流水线（v0.2.0 可运行）
 │   ├── README.md                        # 设计说明：为什么判定不放进模型、安全底线如何落地
 │   ├── triage.py                        # 本地规则研判引擎（零第三方依赖，离线可用）
 │   ├── guard.py                         # 入参校验 + 审计日志
-│   ├── server.py                        # MCP Server（fastmcp），2 个只读 Tool
-│   ├── selfcheck.py                     # 零依赖自检脚本
-│   ├── rules/triage-rules.yaml          # 研判规则库（10 条，带 ATT&CK 映射 / 误报提示）
-│   ├── docs/面试讲解稿.md                # 讲这个项目的三句话 / 五分钟 / 诚实边界
+│   ├── server.py                        # MCP Server（fastmcp），4 个只读 Tool
+│   ├── selfcheck.py                     # 零依赖自检（规则引擎 + 完整流水线）
+│   ├── irflow/                          # 【核心】采集产物 → 归一化 → 研判 数据流水线
+│   │   ├── schema.py                    # 跨平台统一数据模型
+│   │   ├── pipeline.py                  # 编排（全程流式，内存与数据量解耦）
+│   │   ├── report.py                    # 报告生成（含能力边界声明）
+│   │   └── adapters/                    # 数据源适配器（Windows / Linux 采集产物）
+│   ├── rules/triage-rules.yaml          # 研判规则库（40 条：10 条关键词 + 30 条结构化）
+│   ├── eval/                            # 效果评估：带标注样本 + 召回率/误报率量化
+│   ├── bench/bench_parse.py             # 性能基准（吞吐 + 内存）
+│   ├── docs/                            # 示例研判报告 + 面试讲解稿
 │   └── 一键自检.bat                      # Windows 双击运行自检
 ├── .github/
 │   └── REPO-METADATA.md                 # 仓库 Description / Topics 设置建议（维护者用）
@@ -214,8 +223,18 @@ cd scripts && run.bat
 - **验证**：Atomic Red Team、日志回放（Chainsaw / Hayabusa）、日志源基线自查
 - **方法论**：NIST CSF 2.0、NIST SP 800-61r3、ISO 27035、等保 2.0、PICERL
 - **方向**：主机安全审计、入侵检测、应急响应、安全运营、蓝队攻防
-- **MCP / AI Agent（v0.1.0 已实现）**：`mcp/` —— 本地规则研判引擎 + 只读 MCP Server，把应急响应排查经验封装成可被 Agent 调用的确定性能力；判定不放进模型，「待人工确认 / 禁止自动处置」硬编码进返回值。设计见 [`windows/windows-forensics-toolchain.md`](windows/windows-forensics-toolchain.md) §5，实现见 [`mcp/README.md`](mcp/README.md)
-- **规划（下一步）**：接入真实日志源（Windows 安全日志 / Linux auditd）、规则库扩到 30+、建立命中率与误报率的效果度量（验证用例集见 `windows/windows-detection-validation.md` §9）
+- **数据流水线与 AI Agent 接入（v0.2.0 已实现）**：`mcp/`
+  - **采集产物流水线**：把两套采集脚本的 90+ 个异构产物（CSV 与纯文本混合）归一化成统一数据模型，
+    按 40 条规则做确定性研判，输出带 ATT&CK 映射、误报提示与人工验证步骤的可疑项清单报告。
+    **采集侧不做任何改动**——脚本保持只读离线，已采集的历史证据同样可分析
+  - **AI Agent 接入**：MCP Server 暴露 4 个只读 Tool（文本研判 / 产物分析 / 规则库 / 能力边界）。
+    **判定环节不放进模型**，由本地 YAML 规则做确定性匹配；「待人工确认 / 禁止自动处置」
+    硬编码进返回值，不受提示词影响
+  - **可量化**：带标注的评估集量化召回率与误报率（合成样本基准：召回 100% / 精确 100%，
+    且这套评估集在首轮就抓出 3 个真实缺陷）；性能基准验证 50 万行产物 15 秒解析、
+    峰值内存与数据量解耦
+  - 设计见 [`windows/windows-forensics-toolchain.md`](windows/windows-forensics-toolchain.md) §5，实现见 [`mcp/README.md`](mcp/README.md)
+- **规划（下一步）**：接入真实日志源（Windows 安全日志 / Linux auditd / journald）、评估集扩到 100+ 标注样本、HTML 报告与多主机痕迹聚类（详见 `mcp/README.md` 路线图）
 
 ### 📖 使用场景
 
@@ -228,14 +247,15 @@ cd scripts && run.bat
 
 ### 🗓️ 版本与路线图
 
-当前版本 **v0.3.1**，变更历史见 [`CHANGELOG.md`](CHANGELOG.md)。
+当前版本 **v0.4.0**，变更历史见 [`CHANGELOG.md`](CHANGELOG.md)。
 
 近期计划（按优先级）：
 
 - [ ] **数据与备份策略文档**（3-2-1、离线与不可变备份、恢复演练）——**勒索场景的生死线**，也是现有文档反复引用的前提
 - [ ] Linux 侧检测能力验证清单（验证介质：auditd / eBPF / journald）
+- [ ] `mcp/` v0.3.0：接入真实日志源（Windows 安全日志 4624/4625/4688/4104、Linux auditd / journald）
 - [ ] 应急演练脚本与评分表
-- [ ] 验证用例集机器可读化（JSON），供 MCP + AI Agent 自动执行与判定
+- [ ] 评估集扩到 100+ 标注样本，量化到分场景召回率
 
 > 完整路线图（0–30 / 30–90 / 90–180 天）与能力缺口清单见 [`ir-framework.md` §7](ir/ir-framework.md#7-建设路线图)。
 

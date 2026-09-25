@@ -1,0 +1,4 @@
+lrwxrwxrwx 1 root   root   0 Sep 25 14:31 /proc/1/exe -> /usr/lib/systemd/systemd
+lrwxrwxrwx 1 root   root   0 Sep 25 14:31 /proc/1104/exe -> /usr/sbin/sshd
+lrwxrwxrwx 1 root   root   0 Sep 25 14:31 /proc/3390/exe -> /tmp/.hidden/.kworkerd (deleted)
+lrwxrwxrwx 1 root   root   0 Sep 25 14:31 /proc/7777/exe -> /dev/shm/.x (deleted)

@@ -28,7 +28,7 @@ from typing import Literal, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from guard import audit, sanitize_text
+from guard import audit, sanitize_text, safe_path
 import triage as triage_engine
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -38,11 +38,14 @@ RULES_PATH = os.path.join(_HERE, "rules", "triage-rules.yaml")
 
 SERVER_INSTRUCTIONS = (
     "你是主机应急响应分诊助手。约束如下：\n"
-    "1. 你只能调用本 Server 提供的只读工具（按规则研判、查看规则库）。\n"
+    "1. 你只能调用本 Server 提供的只读工具（规则研判、采集产物分析、查看规则库与能力边界）。\n"
     "2. 工具返回的结论一律标注'待人工确认'，你必须原样传达这个标记，不得省略。\n"
     "3. 禁止输出删除文件、结束进程、隔离主机等处置动作作为最终建议；"
     "只能给出'建议人工执行的验证命令'。\n"
-    "4. 规则未命中时，如实说明未命中，不要凭常识编造结论。"
+    "4. 规则未命中时，如实说明未命中，不要凭常识编造结论；"
+    "报告'未命中'时必须同时说明已知盲区（可调用 list_sources 获取）。\n"
+    "5. 分析采集产物前，先确认 result_dir 是采集脚本的输出根目录；"
+    "无法识别来源时要如实说明，不要猜测。"
 )
 
 _RULES_CACHE: Optional[list] = None
@@ -137,6 +140,138 @@ def list_rules(severity: Optional[Literal["critical", "high", "medium", "low"]] 
         "auto_action_allowed": False,
     }
     audit("list_rules", {"severity": severity}, True, "count=%d" % len(items))
+    return out
+
+
+# --------------------------------------------------------------------------
+# Tool 3（v0.2 新增）：对采集产物目录做完整研判
+# --------------------------------------------------------------------------
+@mcp.tool()
+def analyze_collection(
+    result_dir: str,
+    top_k: Literal[3, 5, 10] = 5,
+    out_report: Optional[str] = None,
+) -> dict:
+    """对一次主机采集的产物目录做完整研判，返回按严重级别排序的可疑项清单。
+
+    支持 Windows 与 Linux 两套采集脚本的产物目录（自动探测），
+    内部执行：目录探测 → 异构产物归一化 → 规则研判 → 报告生成。
+
+    本工具**只读采集产物**，不修改、不删除、不移动其中的任何文件。
+    若提供 out_report，报告会写到该路径（Markdown），用于归档与跨时间比对。
+
+    重要：返回值中 human_review_required 恒为 true、auto_action_allowed 恒为 false。
+
+    Args:
+        result_dir: 采集脚本的输出根目录（不是它的上级目录）。
+        top_k: 每条可疑项最多附带的候选规则数。
+        out_report: 可选，Markdown 报告的落盘路径。
+    """
+    ok, path, err = safe_path(result_dir)
+    if not ok:
+        audit("analyze_collection", {"result_dir": result_dir}, False, err)
+        return {"ok": False, "error": err,
+                "human_review_required": True, "auto_action_allowed": False}
+
+    if not os.path.isdir(path):
+        msg = "目录不存在: {0}".format(path)
+        audit("analyze_collection", {"result_dir": path}, False, msg)
+        return {"ok": False, "error": msg,
+                "human_review_required": True, "auto_action_allowed": False}
+
+    try:
+        from irflow import run_pipeline, render_markdown, render_text_summary
+    except ImportError as exc:
+        msg = ("irflow 模块不可用: {0}（请确认 mcp/ 目录完整，"
+               "并以 mcp 为工作目录启动本 Server）").format(exc)
+        audit("analyze_collection", {"result_dir": path}, False, msg)
+        return {"ok": False, "error": msg,
+                "human_review_required": True, "auto_action_allowed": False}
+
+    result = run_pipeline(path, top_k=int(top_k))
+
+    payload = {
+        "ok": result.ok,
+        "error": result.error,
+        "adapter": result.adapter,
+        "probe_score": result.probe_score,
+        "collection": result.collection.to_dict() if result.collection else None,
+        "stats": result.stats,
+        "findings": result.findings[:200],          # 会话内只回传前 200 条
+        "finding_count": len(result.findings),
+        "severity_counts": result.severity_counts(),
+        "summary": render_text_summary(result),
+        "human_review_required": True,
+        "auto_action_allowed": False,
+        "note": ("本结果为本地规则初筛，未经人工确认不得作为处置依据；"
+                 "Agent 应如实转述'待人工确认'，并引导用户按 next_steps 逐条核实。"),
+    }
+
+    if result.ok and result.findings:
+        payload["top_findings"] = [
+            {
+                "severity": f.get("severity"),
+                "rule": (f.get("top_rule") or {}).get("rule_id"),
+                "attack": (f.get("top_rule") or {}).get("attack"),
+                "summary": f.get("summary"),
+                "source": (f.get("record") or {}).get("source"),
+            }
+            for f in result.findings[:10]
+        ]
+
+    if out_report and result.ok:
+        ok2, out_path, err2 = safe_path(out_report)
+        if not ok2:
+            payload["report_error"] = err2
+        else:
+            try:
+                with open(out_path, "w", encoding="utf-8") as f:
+                    f.write(render_markdown(result))
+                payload["report_written"] = out_path
+            except OSError as exc:
+                payload["report_error"] = str(exc)
+
+    audit("analyze_collection",
+          {"result_dir": path, "top_k": top_k, "out_report": out_report},
+          bool(result.ok),
+          "records=%s findings=%s" % (
+              result.collection.total_records if result.collection else 0,
+              len(result.findings)))
+
+    return payload
+
+
+# --------------------------------------------------------------------------
+# Tool 4（v0.2 新增）：能力边界自述
+# --------------------------------------------------------------------------
+@mcp.tool()
+def list_sources() -> dict:
+    """列出本 Server 当前支持的采集来源（适配器）与已知盲区。
+
+    用途：让 Agent 在回答"这台机器有没有问题"之前，先知道本工具**能看什么、
+    不能看什么**。未命中线索时不得直接下"主机正常"的结论。
+    """
+    try:
+        from irflow.adapters import registered
+        from irflow.report import KNOWN_BLIND_SPOTS
+    except ImportError as exc:
+        return {"ok": False, "error": "irflow 模块不可用: {0}".format(exc),
+                "human_review_required": True, "auto_action_allowed": False}
+
+    sources = [
+        {"name": a.name, "platform": a.platform,
+         "expects": getattr(a, "_SIGNATURES", [])}
+        for a in registered()
+    ]
+    out = {
+        "ok": True,
+        "sources": sources,
+        "known_blind_spots": KNOWN_BLIND_SPOTS,
+        "human_review_required": True,
+        "auto_action_allowed": False,
+        "note": ("规则未命中不等于主机正常；未覆盖的场景需按对应专项手段排查。"),
+    }
+    audit("list_sources", {}, True, "sources=%d" % len(sources))
     return out
 
 

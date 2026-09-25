@@ -1,0 +1,4 @@
+﻿"TaskPath","TaskName","State","Author","RunAs","RunLevel","Hidden","Execute","Arguments"
+"\Microsoft\Windows\UpdateOrchestrator\","Schedule Scan","Ready","Microsoft Corporation","SYSTEM","Highest","False","C:\Windows\System32\usoclient.exe","StartScan"
+"\","WindowsUpdate","Ready","Microsoft Corporation","SYSTEM","Limited","False","C:\Windows\System32\cleanmgr.exe","/sagerun:1"
+"\","SysHealthCheck","Ready","WIN-DEMO-01\demo","demo","Highest","True","C:\Users\demo\AppData\Local\Temp\svhost32.exe","-task"

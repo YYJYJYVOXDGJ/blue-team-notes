@@ -1,0 +1,4 @@
+﻿"Key","Name","Value"
+"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run","SecurityHealth","%windir%\system32\SecurityHealthSystray.exe"
+"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run","OneDrive","""C:\Program Files\Microsoft OneDrive\OneDrive.exe"" /background"
+"HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run","Updater","C:\Users\demo\AppData\Roaming\updater.exe --silent"

@@ -2,6 +2,12 @@
 audit/
 *.jsonl
 
+# 评估与基准的输出产物（eval/labels.json 是标注集，必须保留）
+eval/result*.json
+eval/out/
+bench/out/
+*.bench.json
+
 # Python
 __pycache__/
 *.py[cod]

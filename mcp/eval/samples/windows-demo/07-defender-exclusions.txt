@@ -1,0 +1,5 @@
+AntivirusExclusions
+PathExclusions : C:\
+PathExclusions : C:\Users\demo\AppData\Local\Temp
+ProcessExclusions : svhost32.exe
+ExtensionExclusions : .dat

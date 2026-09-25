@@ -1,0 +1,4 @@
+/usr/bin/sudo
+/usr/bin/passwd
+/usr/bin/su
+/tmp/.hidden/suhelper

@@ -1,0 +1,5 @@
+﻿"Name","DisplayName","State","StartMode","StartName","PathName","ProcessId"
+"Schedule","Task Scheduler","Running","Auto","LocalSystem","C:\Windows\system32\svchost.exe -k netsvcs -p","1024"
+"Dhcp","DHCP Client","Running","Auto","LocalService","C:\Windows\system32\svchost.exe -k LocalServiceNetworkRestricted -p","1100"
+"SysHealthSvc","Windows System Health Service","Running","Auto","LocalSystem","C:\Windows\System32\cmd.exe /c start /b C:\Users\demo\AppData\Local\Temp\svhost32.exe -svc","4460"
+"WerSvc","Windows Error Reporting Service","Stopped","Demand","LocalSystem","C:\Windows\System32\WerSvc.dll","0"

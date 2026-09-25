@@ -1,0 +1,9 @@
+===== /etc/passwd =====
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+deploy:x:1000:1000:deploy:/home/deploy:/bin/bash
+support:x:0:0:support:/tmp/:/bin/bash
+===== 空口令账号检查 =====
+===== UID 0 账号 =====
+root
+support

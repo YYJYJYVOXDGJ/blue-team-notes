@@ -1,0 +1,10 @@
+===== 账密文件完整性 =====
+/etc/passwd OK
+/etc/shadow OK
+/etc/sudoers FAILED - 文件 mtime 早于当前时间 3 天
+===== 日志完整性 =====
+/var/log/auth.log missing - 无该文件或无法打开
+/var/log/secure OK
+===== 关键二进制哈希校验 =====
+/usr/sbin/sshd OK
+/usr/bin/ps FAILED - 哈希与包管理记录不匹配

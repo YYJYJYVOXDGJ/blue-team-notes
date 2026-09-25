@@ -60,6 +60,7 @@
 
 - id: PERSIST-001
   name: 可疑计划任务创建
+  scope: alert
   attack:
     technique: T1053.005
     tactic: Persistence
@@ -85,6 +86,7 @@
 
 - id: PERSIST-002
   name: 可疑服务创建或服务替换
+  scope: alert
   attack:
     technique: T1543.003
     tactic: Persistence
@@ -162,6 +164,7 @@
 
 - id: C2-001
   name: 可疑外连与远控通信迹象
+  scope: alert
   attack:
     technique: T1071
     tactic: Command and Control
@@ -265,3 +268,754 @@
     - 视为高置信度恶意行为，立即按 P0/P1 升级
     - 检查备份是否同时被删（卷影删除通常是勒索的前置动作）
     - 从远端日志服务器或 SIEM 侧找回已被本机清除的日志
+
+# =====================================================================
+# 以下为 v0.2 新增的「结构化规则」。
+#
+# 与上面 10 条的区别：上面的规则靠 keywords 匹配一段文本（适用于人工粘贴的
+# 告警），下面的规则通过 match 段直接比对**采集产物归一化后的字段**
+# （适用于 scripts/*-ir-quickcheck.* 的输出）。
+#
+# match 语法：
+#   kind / platform   限定记录种类与平台
+#   all               列表内每个谓词都必须成立
+#   any               列表内至少一个谓词成立
+# 谓词算子：equals / not_equals / in / not_in / contains / not_contains /
+#           startswith / not_startswith / endswith / not_endswith /
+#           regex / not_regex / exists / not_exists / gt / lt
+# 字段缺失时：否定类算子视为成立，肯定类算子一律不成立（避免误命中）。
+# =====================================================================
+
+- id: PROC-001
+  name: 进程可执行文件位于用户可写目录
+  attack:
+    technique: T1036
+    tactic: Defense Evasion
+    name: Masquerading
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: process
+    platform: windows
+    all:
+      - field: path
+        regex: '\\(Temp|AppData|ProgramData|Users\\Public|Windows\\Temp|PerfLogs|Recycle)\\'
+      - field: path
+        not_startswith:
+          - 'C:\Windows\'
+          - 'C:\Program Files\'
+          - 'C:\Program Files (x86)\'
+  false_positive_hints:
+    - 便携版软件、绿色软件、自解压更新器
+    - 企业内部自研工具未走标准安装路径
+    - 安装过程中的临时解包进程
+  next_steps:
+    - 核对文件数字签名与签名主体（无签名或签名主体陌生的优先级最高）
+    - 比对文件哈希与基线快照，确认是否为已知合法程序
+    - 查父进程与创建时间，判断是用户主动运行还是被拉起
+
+- id: PROC-002
+  name: 进程无有效数字签名且不在系统目录
+  attack:
+    technique: T1036
+    tactic: Defense Evasion
+    name: Masquerading
+  severity: medium
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: process
+    platform: windows
+    all:
+      - field: sign
+        in:
+          - NotSigned
+          - HashMismatch
+          - UnknownError
+      - field: prescreen
+        equals: outside-system-dir
+  false_positive_hints:
+    - 开源工具、内网自研程序普遍未签名
+    - 签名服务临时不可用导致的 HashMismatch
+  next_steps:
+    - HashMismatch 需视为高度可疑（可能被篡改），优先核查
+    - 未签名程序结合其网络连接与持久化项一并判断
+    - 查该文件在 VirusTotal 等平台的公开情报（**注意：不得上传客户环境样本**）
+
+- id: PROC-003
+  name: 进程可执行文件已被删除（Linux）
+  attack:
+    technique: T1070
+    tactic: Defense Evasion
+    name: Indicator Removal
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: process
+    platform: linux
+    all:
+      - field: deleted
+        equals: 'yes'
+  false_positive_hints:
+    - 正常升级过程中的短暂窗口（服务重启后即消失）
+    - 容器内进程引用了已卸载的层
+  next_steps:
+    - 立即固定证据：从 /proc/<pid>/exe 复制出文件副本（进程退出后证据即消失）
+    - 记录 pid、启动时间与父进程，判断是否为长期驻留
+    - 这是无文件落地类恶意程序的典型特征，按高优先级处理
+
+- id: PROC-004
+  name: 隐藏进程（/proc 与 ps 结果不一致）
+  attack:
+    technique: T1014
+    tactic: Defense Evasion
+    name: Rootkit
+  severity: critical
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: process
+    platform: linux
+    all:
+      - field: hidden
+        equals: 'yes'
+  false_positive_hints:
+    - ps 使用了非标准的 /proc 挂载视图（极少见）
+    - 采集脚本在容器内核命名空间下运行造成的视图差异
+  next_steps:
+    - 视同 Rootkit 嫌疑，按 P0 升级并考虑隔离主机
+    - 用 /proc/<pid>/ 直读方式独立核对（不要依赖 ps、netstat、ls）
+    - 检查内核模块、bpf 程序与 ld.so.preload 是否有异常加载项
+
+- id: PROC-005
+  name: 脚本解释器从异常位置启动
+  attack:
+    technique: T1218
+    tactic: Defense Evasion
+    name: System Binary Proxy Execution
+  severity: medium
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: process
+    all:
+      - field: name
+        in:
+          - powershell.exe
+          - pwsh.exe
+          - cmd.exe
+          - wscript.exe
+          - cscript.exe
+          - mshta.exe
+          - rundll32.exe
+          - regsvr32.exe
+      - field: path
+        not_startswith:
+          - 'C:\Windows\'
+  false_positive_hints:
+    - 便携版 PowerShell（PowerShell 7 装在 Program Files 之外的场景）
+    - 第三方软件自带的脚本宿主副本
+  next_steps:
+    - 核对该二进制的签名与文件版本信息
+    - 结合命令行内容判断是否被借用执行恶意脚本
+    - 参考 windows-host-audit.md 附录 LOLBins 速查表
+
+- id: NET-001
+  name: 对外地址上的高危端口监听
+  attack:
+    technique: T1571
+    tactic: Command and Control
+    name: Non-Standard Port
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: connection
+    all:
+      - field: local_addr
+        not_in:
+          - '127.0.0.1'
+          - '::1'
+          - '[::1]'
+      - field: local_port
+        in:
+          - 4444
+          - 4445
+          - 5555
+          - 6666
+          - 7777
+          - 8888
+          - 9999
+          - 12345
+          - 31337
+          - 50050
+    any:
+      - field: state
+        in:
+          - LISTEN
+          - UNCONN
+      - field: state
+        not_exists: true
+  false_positive_hints:
+    - 内部服务恰好使用了这些端口（如 8888 常见于 Jupyter）
+    - 开发测试用的临时监听
+    - 注意 0.0.0.0 与 :: 表示绑定全部网卡，对外暴露面最大，属重点关注对象
+    - Windows 侧 02-listen.csv 无 State 列（采集时已按监听过滤），故本规则对缺失 state 的情况放行
+  next_steps:
+    - 反查该端口的进程名、路径与签名（这是判定的决定性证据）
+    - 用 `netstat -ano` 与 `Get-NetTCPConnection` 交叉验证，防止 netstat 被替换
+    - 确认该监听是否在基线快照中存在，不在则重点怀疑
+
+- id: NET-002
+  name: 外连到 C2 常用端口
+  attack:
+    technique: T1571
+    tactic: Command and Control
+    name: Non-Standard Port
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: connection
+    all:
+      - field: remote_port
+        in:
+          - 4444
+          - 4445
+          - 5555
+          - 6666
+          - 7777
+          - 9999
+          - 12345
+          - 31337
+          - 50050
+          - 14444
+          - 45560
+  false_positive_hints:
+    - 企业自研系统的内部端口恰好撞上这些值
+    - 云服务商的自定义端口
+    - 注意：Windows 侧 02-established.csv 本身只含已建立连接，故本规则不再校验 state
+  next_steps:
+    - 查 remote_addr 的 ASN 归属与备案信息（不要只凭 IP 首段猜国家）
+    - 反查发起连接的进程，核对签名与路径
+    - 结合 DNS 缓存记录判断域名来源
+
+- id: NET-003
+  name: 矿池端口通信迹象
+  attack:
+    technique: T1496
+    tactic: Impact
+    name: Resource Hijacking
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: connection
+    all:
+      - field: remote_port
+        in:
+          - 3333
+          - 4444
+          - 5555
+          - 7777
+          - 8888
+          - 9999
+          - 14444
+          - 45700
+  false_positive_hints:
+    - 开发环境的本地服务端口
+  next_steps:
+    - 反查进程并核对是否为已知挖矿程序名
+    - 检查 CPU 占用与父进程链
+    - 按持久化全量清单核对清除彻底性
+
+- id: NET-004
+  name: 端口转发或代理配置异常
+  attack:
+    technique: T1090
+    tactic: Command and Control
+    name: Proxy
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: config
+    all:
+      - field: display
+        in:
+          - portproxy
+          - proxy
+          - net-basic
+      - field: detail
+        regex: '(?i)(listenport|listenaddress|netsh interface portproxy|ProxyServer)'
+  false_positive_hints:
+    - 运维为发布做的正常端口转发（应有变更记录）
+  next_steps:
+    - 核对 portproxy 规则是否为运维登记过的变更
+    - 检查系统代理与 PAC 配置是否被指向未知地址
+    - 未登记的内网端口转发是横向移动的重要通道
+
+- id: PERSIST-003
+  name: 隐藏的计划任务
+  attack:
+    technique: T1053.005
+    tactic: Persistence
+    name: Scheduled Task
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: persistence
+    platform: windows
+    all:
+      - field: mech
+        equals: scheduled-task
+      - field: hidden
+        equals: 'true'
+  false_positive_hints:
+    - 部分企业软件会创建隐藏任务做静默更新
+  next_steps:
+    - 核对任务的 Author 与创建时间，是否与可疑登录时间吻合
+    - 检查 Execute 指向的文件签名与哈希
+    - 用 `schtasks /query /v` 与注册表 TaskCache 交叉验证
+
+- id: PERSIST-004
+  name: 计划任务指向用户可写目录
+  attack:
+    technique: T1053.005
+    tactic: Persistence
+    name: Scheduled Task
+  severity: medium
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: persistence
+    platform: windows
+    all:
+      - field: mech
+        equals: scheduled-task
+      - field: path
+        regex: '(?i)\\(Temp|AppData|ProgramData|Users\\Public|Windows\\Temp)\\(?![^\\]*\.(dll|log|txt|cache)$)'
+  false_positive_hints:
+    - 部分软件的更新程序确实放在 AppData 下
+    - 用户自建的脚本任务
+  next_steps:
+    - 核对任务创建者与创建时间
+    - 检查目标文件的签名与哈希
+    - 参考 windows-attack-mapping.md 权限维持全量清单
+
+- id: PERSIST-005
+  name: Run 键指向临时目录或脚本宿主
+  attack:
+    technique: T1547.001
+    tactic: Persistence
+    name: Registry Run Keys
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: persistence
+    platform: windows
+    all:
+      - field: mech
+        in:
+          - run-key
+          - autostart
+      - field: cmd
+        regex: '(?i)(\\Temp\\|\\AppData\\|\\ProgramData\\|\\Users\\Public\\|powershell|mshta|rundll32|regsvr32|certutil|bitsadmin|wscript|cscript)'
+  false_positive_hints:
+    - 部分输入法、驱动更新器的正常自启动
+    - 企业统一推送的合规客户端
+  next_steps:
+    - 核对所指文件的签名、路径与文件创建时间
+    - 检查注册表项的最后写入时间是否与可疑活动时间吻合
+    - 同时核对 HKCU 与 HKLM 两个分支
+
+- id: PERSIST-006
+  name: 服务路径包含命令行解释器
+  attack:
+    technique: T1543.003
+    tactic: Persistence
+    name: Windows Service
+  severity: critical
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: persistence
+    platform: windows
+    all:
+      - field: mech
+        equals: service
+      - field: path
+        regex: '(?i)(cmd\.exe|powershell|pwsh|mshta|rundll32|regsvr32|wscript|cscript|/c\s|base64)'
+  false_positive_hints:
+    - 部分老旧软件确实用 cmd /c 启动（应能说清用途）
+  next_steps:
+    - 高优先级核查：正常服务极少以命令行解释器作为映像路径
+    - 查服务的创建时间与 Source（SCM 事件日志 7045）
+    - 检查该服务当前是否在运行（State / StartMode）
+
+- id: PERSIST-007
+  name: IFEO 调试器劫持
+  attack:
+    technique: T1546.012
+    tactic: Persistence
+    name: Image File Execution Options Injection
+  severity: critical
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: persistence
+    platform: windows
+    all:
+      - field: mech
+        equals: ifeo
+  false_positive_hints:
+    - 开发机上的调试器注册（如 windbg、Visual Studio）
+    - 无障碍功能替换（辅助技术的正规配置）
+  next_steps:
+    - 调试器指向非调试工具路径时按恶意处理
+    - 核对注册表键的写入时间
+    - 常规杀软极易漏掉此项，属高频遗漏点
+
+- id: PERSIST-008
+  name: SilentProcessExit 监视器劫持
+  attack:
+    technique: T1546.012
+    tactic: Persistence
+    name: Image File Execution Options Injection
+  severity: critical
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: persistence
+    platform: windows
+    all:
+      - field: mech
+        equals: silent-process-exit
+  false_positive_hints:
+    - 极少有正常软件使用该机制
+  next_steps:
+    - 视为高置信度恶意持久化，按 P0/P1 升级
+    - 核对 MonitorProcess 指向文件的签名与路径
+    - 该机制可在任意进程退出时触发，属高级手法
+
+- id: PERSIST-009
+  name: WMI 事件订阅持久化
+  attack:
+    technique: T1546.003
+    tactic: Persistence
+    name: WMI Event Subscription
+  severity: critical
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: persistence
+    platform: windows
+    all:
+      - field: mech
+        equals: wmi-subscription
+      - field: consumer_class
+        in:
+          - CommandLineEventConsumer
+          - ActiveScriptEventConsumer
+  false_positive_hints:
+    - 极少数监控软件会用到 WMI 订阅（应在基线中存在）
+  next_steps:
+    - 无文件持久化的典型手法，杀软覆盖差，按 P0/P1 升级
+    - 三条链（Filter / Consumer / Binding）必须一起看，缺一不成立
+    - 重点看 Consumer 里的脚本内容与执行命令
+
+- id: PERSIST-010
+  name: SSH 公钥认证项（Linux）
+  attack:
+    technique: T1098.004
+    tactic: Persistence
+    name: SSH Authorized Keys
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: persistence
+    platform: linux
+    all:
+      - field: mech
+        equals: ssh-authorized-keys
+  false_positive_hints:
+    - 运维配置的自动化部署密钥（应有台账）
+    - 用户自己的登录密钥
+  next_steps:
+    - 逐个核对公钥指纹与所属账号，与运维台账比对
+    - 重点看 root 与高权限账号，以及 mtime 较新的条目
+    - 公钥后门是 Linux 侧最高频的持久化手法之一
+
+- id: PERSIST-011
+  name: cron 任务指向临时目录
+  attack:
+    technique: T1053.003
+    tactic: Persistence
+    name: Cron
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: persistence
+    platform: linux
+    all:
+      - field: mech
+        equals: cron
+      - field: cmd
+        regex: '(/tmp/|/var/tmp/|/dev/shm/|/run/shm/)'
+  false_positive_hints:
+    - 临时维护脚本（通常生命周期很短）
+  next_steps:
+    - 定位 cron 文件的修改时间与属主
+    - 检查所指脚本的实际内容
+    - 注意 /dev/shm 与 /run/shm 内存目录，重启即失但极隐蔽
+
+- id: PERSIST-012
+  name: systemd 单元指向临时目录
+  attack:
+    technique: T1543.002
+    tactic: Persistence
+    name: Systemd Service
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: persistence
+    platform: linux
+    all:
+      - field: mech
+        equals: systemd
+      - field: cmd
+        regex: '(/tmp/|/var/tmp/|/dev/shm/|/run/shm/)'
+  false_positive_hints:
+    - 开发调试用的临时 unit
+  next_steps:
+    - 核对 unit 文件的 mtime 与创建来源
+    - 检查 ExecStart 指向的可执行文件
+    - 与 cron 一并核对，恶意程序常双写持久化
+
+- id: ACCT-001
+  name: UID 0 的非 root 账号
+  attack:
+    technique: T1136
+    tactic: Persistence
+    name: Create Account
+  severity: critical
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: account
+    platform: linux
+    all:
+      - field: uid
+        equals: 0
+      - field: name
+        not_equals: root
+  false_positive_hints:
+    - 极少有合法场景；部分发行版的 systemd 兼容账号需人工确认
+  next_steps:
+    - 按 P0 处理：UID 0 的非 root 账号是典型的后门账号
+    - 查该账号的创建时间（/etc/passwd 文件 mtime、审计日志）
+    - 检查其家目录、authorized_keys 与最近登录记录
+
+- id: ACCT-002
+  name: 账号具备可登录 shell 且家目录异常
+  attack:
+    technique: T1136
+    tactic: Persistence
+    name: Create Account
+  severity: medium
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: account
+    platform: linux
+    all:
+      - field: shell
+        regex: '(bash|sh|zsh)$'
+      - field: home
+        regex: '^(/tmp|/dev/shm|/var/tmp)'
+  false_positive_hints:
+    - 服务账号配置不规范（常见于手工创建）
+  next_steps:
+    - 核对账号用途是否登记在册
+    - 检查该账号的登录记录与 sudo 权限
+    - 结合 authorized_keys 一并核查
+
+- id: FILE-001
+  name: 临时目录下的 SUID 可执行文件
+  attack:
+    technique: T1548.001
+    tactic: Privilege Escalation
+    name: Setuid and Setgid
+  severity: critical
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: file
+    platform: linux
+    all:
+      - field: display
+        in:
+          - suid
+          - capabilities
+      - field: path
+        regex: '^(/tmp|/var/tmp|/dev/shm|/home)'
+  false_positive_hints:
+    - 极少有合法场景
+  next_steps:
+    - 按 P0 处理：这是提权后门的典型形态
+    - 记录文件哈希与 mtime，保留副本后再处理
+    - 检查同目录下的其他文件是否同期出现
+
+- id: FILE-002
+  name: 存在无主文件（属主账号已不存在）
+  attack:
+    technique: T1070
+    tactic: Defense Evasion
+    name: Indicator Removal
+  severity: medium
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: file
+    platform: linux
+    all:
+      - field: display
+        equals: no-owner
+  false_positive_hints:
+    - 卸载软件后遗留的正常残留
+  next_steps:
+    - 反查该文件的 mtime 与内容，判断是否为攻击痕迹
+    - 结合账号变更记录（近期是否有账号被删）
+    - 攻击者常在建完账号、用完即删后留下无主文件
+
+- id: MOD-001
+  name: 内核模块加载项待核对
+  attack:
+    technique: T1547.006
+    tactic: Persistence
+    name: Kernel Modules and Extensions
+  severity: medium
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: module
+    all:
+      - field: display
+        in:
+          - lsmod
+          - proc-modules
+  false_positive_hints:
+    - 绝大多数模块都是系统正常组件
+    - 虚拟化、容器、存储驱动的加载项
+  next_steps:
+    - 与同版本系统的基线模块清单做差集，只看新增项
+    - 新增模块用 `modinfo` 查来源与签名（Linux 内核模块签名）
+    - Windows 侧核对驱动的签名主体是否为已知厂商
+
+- id: CFG-001
+  name: 审计与日志策略被削弱
+  attack:
+    technique: T1562.002
+    tactic: Defense Evasion
+    name: Disable Windows Event Logging
+  severity: high
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: config
+    all:
+      - field: display
+        in:
+          - '07-auditpol.txt'
+          - '07-audit-config.txt'
+          - '07-sysmon.txt'
+          - '07-wef-subscriptions.txt'
+      - field: detail
+        regex: '(?i)(No Auditing|无审核|Not Configured|已禁用|Disabled)'
+  false_positive_hints:
+    - 部分策略项在本环境本就不需要开启（应有基线文档）
+  next_steps:
+    - 与基线文档比对，确认哪些项是被"改掉"而非"从未配置"
+    - 审计被关闭往往发生在攻击者已取得权限之后，属反取证行为
+    - 优先看 4688 命令行审计与 PowerShell 脚本块日志（4104）
+
+- id: CFG-002
+  name: 杀软排除项覆盖面过大
+  attack:
+    technique: T1562.001
+    tactic: Defense Evasion
+    name: Disable or Modify Tools
+  severity: medium
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: config
+    all:
+      - field: display
+        equals: '07-defender-exclusions.txt'
+      - field: detail
+        regex: '(?i)(C:\\|\\\\|Process|Extension)'
+  false_positive_hints:
+    - 运维为解决误杀加的临时排除（应有变更记录与回收计划）
+  next_steps:
+    - 核对排除项的来源与登记记录
+    - 整盘或整目录排除是攻击者常用的"合法绕杀"手法
+    - 检查排除目录下是否存在异常可执行文件
+
+- id: DEFENSE-002
+  name: 日志完整性校验失败（疑似被篡改）
+  attack:
+    technique: T1070.001
+    tactic: Defense Evasion
+    name: Clear Windows Event Logs
+  severity: critical
+  keywords:
+    any: []
+    all: []
+  match:
+    kind: log
+    platform: linux
+    all:
+      - field: display
+        equals: integrity
+      - field: detail
+        regex: '(?i)(FAILED|不匹配|mismatch|missing|缺失|no such|无法打开)'
+  false_positive_hints:
+    - 日志轮转导致的正常缺失（应有轮转策略记录）
+  next_steps:
+    - 按 P0 升级：日志缺失/被清通常是反取证行为
+    - 从远端日志服务器或 SIEM 找回同期日志
+    - 核对日志文件的 mtime 与 size 是否被改动

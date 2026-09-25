@@ -1,0 +1,7 @@
+===== 采集时间 =====
+2026-09-25T14:30:02+08:00
+===== 系统信息 =====
+Hostname: linux-demo-01
+Kernel: 5.15.0-119-generic
+OS: Ubuntu 22.04.5 LTS
+Uptime: up 12 days, 3:41

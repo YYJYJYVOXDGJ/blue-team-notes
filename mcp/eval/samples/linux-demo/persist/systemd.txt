@@ -1,0 +1,11 @@
+===== enabled services =====
+sshd.service                      enabled  enabled
+cron.service                      enabled  enabled
+syshealth.service                 enabled  enabled
+
+===== ExecStart 指向可疑路径 =====
+/etc/systemd/system/syshealth.service:ExecStart=/tmp/.hidden/.kworkerd --daemon
+
+===== 近期变动的 unit =====
+2026-09-25+13:57:44 /etc/systemd/system/syshealth.service
+2026-09-15+10:00:02 /etc/systemd/system/multi-user.target.wants/cron.service
