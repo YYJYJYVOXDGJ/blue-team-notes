@@ -62,7 +62,7 @@ Windows 的易失性数据比 Linux 更"娇贵"：
 New-NetFirewallRule -DisplayName "IR-Block-Outbound" -Direction Outbound -Action Block -Profile Any
 New-NetFirewallRule -DisplayName "IR-Block-Inbound"  -Direction Inbound  -Action Block -Profile Any
 # 放行到取证服务器（按需）
-New-NetFirewallRule -DisplayName "IR-Allow-Forensic" -Direction Outbound -Action Allow -RemoteAddress 10.0.0.100
+New-NetFirewallRule -DisplayName "IR-Allow-Forensic" -Direction Outbound -Action Allow -RemoteAddress 192.0.2.100
 # 处置结束后清理
 # Remove-NetFirewallRule -DisplayName "IR-Block-*","IR-Allow-Forensic"
 

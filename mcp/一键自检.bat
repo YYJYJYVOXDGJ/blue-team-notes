@@ -16,7 +16,10 @@ if "%PY%"=="" (
   if %errorlevel%==0 set PY=py
 )
 if "%PY%"=="" if exist "F:\PY\python.exe" set PY="F:\PY\python.exe"
-if "%PY%"=="" if exist "C:\Users\<user>\.workbuddy\binaries\python\versions\3.13.12\python.exe" set PY="C:\Users\<user>\.workbuddy\binaries\python\versions\3.13.12\python.exe"
+rem 以下使用环境变量展开，避免把本机用户名硬编码进仓库
+if "%PY%"=="" if exist "%LOCALAPPDATA%\Programs\Python\Python313\python.exe" set PY="%LOCALAPPDATA%\Programs\Python\Python313\python.exe"
+if "%PY%"=="" if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" set PY="%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
+if "%PY%"=="" if exist "%LOCALAPPDATA%\Programs\Python\Python311\python.exe" set PY="%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
 
 if "%PY%"=="" (
   echo [ERROR] python not found

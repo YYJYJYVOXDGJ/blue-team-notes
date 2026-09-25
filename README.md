@@ -4,7 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey.svg)](#-仓库结构)
-[![Docs](https://img.shields.io/badge/Docs-11%20%E4%BB%BD%E6%89%8B%E5%86%8C-blue.svg)](#-仓库结构)
+[![Docs](https://img.shields.io/badge/Docs-14%20%E4%BB%BD%E6%89%8B%E5%86%8C-blue.svg)](#-仓库结构)
+[![Cases](https://img.shields.io/badge/Cases-1%20%E4%B8%AA%E8%84%B1%E6%95%8F%E6%A1%88%E4%BE%8B-orange.svg)](#-仓库结构)
 [![Scripts](https://img.shields.io/badge/Scripts-6%20%E4%B8%AA%E5%8F%AA%E8%AF%BB%E8%84%9A%E6%9C%AC-informational.svg)](#-仓库结构)
 [![MCP](https://img.shields.io/badge/MCP-v0.2.0%20%E5%8F%AF%E8%BF%90%E8%A1%8C-blueviolet.svg)](#-仓库结构)
 [![Rules](https://img.shields.io/badge/Rules-40%20%E6%9D%A1-informational.svg)](#-仓库结构)
@@ -42,8 +43,12 @@ blue-team-notes/
 ├── ir/                                  # 应急响应体系（流程层，跨平台）
 │   ├── ir-framework.md                  # 体系框架、能力地图、分级与度量、路线图
 │   ├── ir-playbook.md                   # 应急响应标准流程 SOP（七阶段）
-│   ├── ir-scenarios.md                  # 8 类场景化处置预案
-│   └── ir-templates.md                  # 授权书 / 记录表 / 报告等模板
+│   ├── ir-scenarios.md                  # 8 类场景化处置预案（S1–S8）
+│   ├── ir-scenario-phishing.md          # S9 钓鱼邮件与社交工程
+│   ├── ir-templates.md                  # 授权书 / 记录表 / 报告等模板
+│   └── cases/                           # 脱敏实战案例集（含脱敏规范）
+│       ├── README.md                    # 案例索引 + 脱敏规范（新增案例必读）
+│       └── case-001-oem-push-component.md  # OEM 推送组件被误判为反向连接
 ├── linux/
 │   ├── linux-host-audit.md              # Linux 主机全量应急排查手册（10 章 + 附录）
 │   ├── linux-attack-mapping.md          # Linux 攻击手法与排查点映射（ATT&CK 对照）
@@ -53,14 +58,16 @@ blue-team-notes/
 │   ├── windows-attack-mapping.md        # Windows 攻击手法映射（ATT&CK for Windows）
 │   ├── windows-hardening.md             # Windows 安全基线核查（CIS / 微软基线对照）
 │   ├── windows-forensics-toolchain.md   # 现代应急取证工具链与获取方式
-│   └── windows-detection-validation.md  # 检测能力验证清单（用例集 + 回归）
+│   ├── windows-detection-validation.md  # 检测能力验证清单（用例集 + 回归）
+│   └── windows-manual-steps.md          # 12 步手工排查（每步带正常/可疑判据）
 ├── scripts/
 │   ├── linux-ir-quickcheck.sh           # Linux 应急响应一键采集（只读）
 │   ├── linux-baseline-check.sh          # Linux 安全基线一键核查（只读）
 │   ├── windows-ir-quickcheck.ps1        # Windows 应急响应一键采集（只读）
 │   ├── windows-baseline-check.ps1       # Windows 安全基线一键核查（只读）
 │   ├── port-check.ps1                   # PowerShell 监听端口自动审计脚本
-│   └── run.bat                          # 一键启动脚本
+│   ├── run.bat                          # 一键启动脚本
+│   └── check-sensitive.py               # 敏感信息自查（提交前门禁，公开仓库必备）
 ├── mcp/                                 # MCP / AI Agent 接入 + 数据流水线（v0.2.0 可运行）
 │   ├── README.md                        # 设计说明：为什么判定不放进模型、安全底线如何落地
 │   ├── triage.py                        # 本地规则研判引擎（零第三方依赖，离线可用）
@@ -90,9 +97,10 @@ blue-team-notes/
 
 1. **应急响应体系与流程（`ir/`）**
    - **标准流程 SOP**：准备 → 识别与分诊 → 遏制 → 取证与溯源 → 消除 → 恢复 → 复盘。含**首访 15 分钟标准动作**、失陷判定三档结论、**短遏制/长遏制策略矩阵**（什么情况下不要一刀切）、打蛇风险评估、**清除 vs 重装决策树**、恢复验证清单、加严监控期
-   - **8 类场景化预案**：勒索与双重勒索、挖矿、Web 打点/Webshell/内存马、凭据泄露与横向移动、数据外带与泄露、APT 长期潜伏、供应链与 CI-CD、云主机与容器 K8s。每个场景给出「识别信号 → 10 分钟确认 → 遏制（含**禁忌清单**）→ 清除 → 恢复 → 复盘要点」
+   - **9 类场景化预案**：勒索与双重勒索、挖矿、Web 打点/Webshell/内存马、凭据泄露与横向移动、数据外带与泄露、APT 长期潜伏、供应链与 CI-CD、云主机与容器 K8s、**钓鱼邮件与社交工程**。每个场景给出「识别信号 → 10 分钟确认 → 遏制（含**禁忌清单**）→ 清除 → 恢复 → 复盘要点」
    - **文书模板**：应急响应授权书、事件信息记录表、证据交接单（chain of custody）、处置动作记录表、初报/续报/结报、复盘报告、应急联系人表、对内对外通知话术
    - **分级与上报**：P0–P3 定级判据与响应 SLA、升级/降级规则、法定上报义务与时限对照
+   - **脱敏实战案例集（`ir/cases/`）**：案例统一采用「发现 → 误判 → 纠正 → 方法论 → 可复用步骤」结构，**记录判断被推翻的过程**而非只写做对的部分；配套可执行的**案例脱敏规范**（红线清单、可保留清单、判断原则），确保公开仓库不泄露涉事主机与人员信息
 
 2. **双平台主机入侵排查（10 章手册，六大维度标准化检查清单）**
    - **六大维度**逐层覆盖，每个维度都可追溯到手册具体章节：
@@ -109,6 +117,7 @@ blue-team-notes/
    - 十大章节全貌：排查前置与取证 → 网络端口 → 进程内存 → 持久化（核心）→ 账号认证 → 执行痕迹 → 文件系统 → 日志 → 应用中间件 → 处置加固，另有附录（现场 Checklist / 离线工具箱 / LOLBins 速查）
    - 原生命令优先、标注权限要求、每条都说明「查什么」与「判读要点」——是**排查手册**而非命令清单
    - 同时适配应急现场快速定位与日常基线巡检两种节奏
+   - **12 步手工排查线（`windows/windows-manual-steps.md`）**：与一键采集脚本互补。脚本用于批量取证，手工线用于现场逐条研判——**每条命令都看得见在干什么，没有黑盒**；每步均给出「正常 / 可疑」对照判据，附常见正常进程白名单
 
 3. **深度分层：不止于表层命令**
    - **对抗隐藏**：`/proc` 直读绕过被替换的 `netstat`/`ss`、隐藏进程差集、inode 反查；Windows 侧多源进程交叉验证、内核对象比对
@@ -148,6 +157,7 @@ blue-team-notes/
 
 9. **项目治理**
    - 明确的 `DISCLAIMER.md`（用途限定、授权要求、禁止事项、风险提示）、`CONTRIBUTING.md`（文档与脚本规范、自检清单）、`CHANGELOG.md`（版本演进）
+   - **敏感信息自查门禁**（`scripts/check-sensitive.py`）：本仓库公开，提交前自动扫描私有地址、用户名路径、主机名、邮箱、手机号、密钥材料等，ERROR 项阻断提交；文档保留段与示例值自动豁免。配套 `ir/cases/README.md` 的案例脱敏规范
 
 ### 🗺️ 文档地图
 

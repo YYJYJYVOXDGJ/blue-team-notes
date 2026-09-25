@@ -1,5 +1,5 @@
 blue-team-notes MCP —— 本地规则引擎自检
-规则文件: C:\Users\<user>\Desktop\blue-team-notes-mcp\rules\triage-rules.yaml
+规则文件: <repo>\mcp\rules\triage-rules.yaml
 引擎版本: 0.1.0
 YAML 解析: 内置最小解析器（未安装 PyYAML，离线兜底生效）
 已加载规则: 10 条

@@ -12,6 +12,7 @@
 | S6 | [APT 长期潜伏](#s6-apt-长期潜伏) | 低频 C2、合法工具滥用、日志被选择性清理 |
 | S7 | [供应链与 CI-CD](#s7-供应链与-ci-cd) | 构建产物异常、流水线被改、发布凭据新增 |
 | S8 | [云主机与容器 / K8s](#s8-云主机与容器--k8s) | AK 泄露、元数据服务滥用、K8s 审计异常 |
+| S9 | [钓鱼邮件与社交工程](ir-scenario-phishing.md) | 可疑邮件、邮件头异常、点击链接后本机排查 |
 
 **通用前置**：任何场景的第 0 步都是「固定证据」——跑 `scripts/linux-ir-quickcheck.sh` 或 `scripts/windows-ir-quickcheck.ps1`，导出日志、算哈希、存独立证据盘。详见 `ir-playbook.md` §4.1。
 
