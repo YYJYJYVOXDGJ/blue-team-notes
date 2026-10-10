@@ -57,8 +57,8 @@
 
 自查脚本上线首轮即抓出两处**此前已入库的真实用户名泄露**，均已修复：
 
-- `mcp/一键自检.bat`：Python 路径硬编码为 `C:\Users\<user>\...`，改为 `%LOCALAPPDATA%` 环境变量展开
-- `mcp/docs/demo-output.txt`：示例输出中遗留 `C:\Users\<user>\Desktop\...`，改为 `<repo>` 相对路径
+- `mcp/一键自检.bat`：Python 路径硬编码为 `C:\Users\<用户名>\...`，改为 `%LOCALAPPDATA%` 环境变量展开
+- `mcp/docs/demo-output.txt`：示例输出中遗留 `C:\Users\<用户名>\Desktop\...`，改为 `<repo>` 相对路径
 
 另将 `windows/windows-host-audit.md` 中的示例内网地址 `10.0.0.100` 换为 RFC 5737 文档段 `192.0.2.100`。
 
