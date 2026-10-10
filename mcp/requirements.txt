@@ -2,7 +2,12 @@
 
 # 核心：官方 MCP Python SDK（FastMCP）
 # 提供 @mcp.tool() 装饰器、stdio 传输、协议握手
-mcp[cli]>=1.28.1
+#
+# ⚠️ 必须锁 <2：mcp 2.x 把 FastMCP 改名为 MCPServer
+# （from mcp.server.fastmcp → from mcp.server.mcpserver），
+# server.py 用的是 1.x 的 FastMCP API。不锁版本时 pip 会装到 2.x，
+# 导入直接报 ModuleNotFoundError，Server 起不来。
+mcp[cli]>=1.28.1,<2
 
 # 可选：规则文件解析。
 # 未安装时 triage.py 会自动回退到内置的最小 YAML 解析器（零依赖兜底），

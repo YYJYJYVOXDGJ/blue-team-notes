@@ -8,6 +8,9 @@ eval/out/
 bench/out/
 *.bench.json
 
+# 演示脚本生成的报告
+demo-output/
+
 # Python
 __pycache__/
 *.py[cod]

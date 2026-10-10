@@ -163,7 +163,9 @@ def main() -> int:
     print("结论: %s" % ("规则引擎与流水线工作正常。" if (ok and pipe_ok)
                       else "存在失败项，见上方输出。"))
     print("      安装 mcp 包后即可通过 MCP 协议对外提供能力：")
-    print("      pip install \"mcp[cli]\"  →  python server.py")
+    print("      pip install \"mcp[cli]>=1.28.1,<2\"  →  python server.py")
+    print("      注: 必须锁 <2 —— mcp 2.x 已把 FastMCP 改名为 MCPServer，")
+    print("          server.py 基于 1.x API，装 2.x 会导入失败。")
     return 0 if (ok and pipe_ok) else 1
 
 

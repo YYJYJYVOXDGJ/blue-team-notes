@@ -8,7 +8,7 @@
 [![Cases](https://img.shields.io/badge/Cases-1%20%E4%B8%AA%E8%84%B1%E6%95%8F%E6%A1%88%E4%BE%8B-orange.svg)](#-仓库结构)
 [![Scripts](https://img.shields.io/badge/Scripts-6%20%E4%B8%AA%E5%8F%AA%E8%AF%BB%E8%84%9A%E6%9C%AC-informational.svg)](#-仓库结构)
 [![MCP](https://img.shields.io/badge/MCP-v0.2.0%20%E5%8F%AF%E8%BF%90%E8%A1%8C-blueviolet.svg)](#-仓库结构)
-[![Rules](https://img.shields.io/badge/Rules-40%20%E6%9D%A1-informational.svg)](#-仓库结构)
+[![Rules](https://img.shields.io/badge/Rules-37%20%E6%9D%A1-informational.svg)](#-仓库结构)
 
 ---
 
@@ -79,7 +79,7 @@ blue-team-notes/
 │   │   ├── pipeline.py                  # 编排（全程流式，内存与数据量解耦）
 │   │   ├── report.py                    # 报告生成（含能力边界声明）
 │   │   └── adapters/                    # 数据源适配器（Windows / Linux 采集产物）
-│   ├── rules/triage-rules.yaml          # 研判规则库（40 条：10 条关键词 + 30 条结构化）
+│   ├── rules/triage-rules.yaml          # 研判规则库（37 条：10 条关键词 + 27 条结构化）
 │   ├── eval/                            # 效果评估：带标注样本 + 召回率/误报率量化
 │   ├── bench/bench_parse.py             # 性能基准（吞吐 + 内存）
 │   ├── docs/                            # 示例研判报告 + 面试讲解稿
@@ -235,7 +235,7 @@ cd scripts && run.bat
 - **方向**：主机安全审计、入侵检测、应急响应、安全运营、蓝队攻防
 - **数据流水线与 AI Agent 接入（v0.2.0 已实现）**：`mcp/`
   - **采集产物流水线**：把两套采集脚本的 90+ 个异构产物（CSV 与纯文本混合）归一化成统一数据模型，
-    按 40 条规则做确定性研判，输出带 ATT&CK 映射、误报提示与人工验证步骤的可疑项清单报告。
+    按 37 条规则做确定性研判，输出带 ATT&CK 映射、误报提示与人工验证步骤的可疑项清单报告。
     **采集侧不做任何改动**——脚本保持只读离线，已采集的历史证据同样可分析
   - **AI Agent 接入**：MCP Server 暴露 4 个只读 Tool（文本研判 / 产物分析 / 规则库 / 能力边界）。
     **判定环节不放进模型**，由本地 YAML 规则做确定性匹配；「待人工确认 / 禁止自动处置」
@@ -257,7 +257,7 @@ cd scripts && run.bat
 
 ### 🗓️ 版本与路线图
 
-当前版本 **v0.4.0**，变更历史见 [`CHANGELOG.md`](CHANGELOG.md)。
+当前版本 **v0.4.1**，变更历史见 [`CHANGELOG.md`](CHANGELOG.md)。
 
 近期计划（按优先级）：
 

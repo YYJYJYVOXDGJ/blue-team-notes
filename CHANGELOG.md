@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+### 修正
+- **依赖版本约束修正（重要）**：`mcp[cli]` 由 `>=1.28.1` 收紧为 `>=1.28.1,<2`。
+  mcp 2.x 已将 `FastMCP` 更名为 `MCPServer`（导入路径由 `mcp.server.fastmcp`
+  变为 `mcp.server.mcpserver`），本 Server 基于 1.x API 编写，未锁版本时装到 2.x
+  会直接 `ModuleNotFoundError`，Server 无法启动。`requirements.txt`、
+  `mcp/README.md` 快速开始、`selfcheck.py` 末尾提示三处同步修正。
+- **文档口径与实现对齐**：规则库实际为 **37 条**（10 条关键词 + 27 条结构化），
+  此前 `README.md` 与 `mcp/README.md` 中的「40 条」「30 条结构化」为过时口径，已更正。
+- `README.md` 当前版本号由 v0.4.0 更正为 v0.4.1（与 CHANGELOG 一致）。
+
+### 新增
+- `mcp/demo.py` + `mcp/演示.bat`：现场演示一键脚本。
+  串起「规则引擎 → 数据流水线 → 研判报告 → 效果与性能」四个演示点，
+  全程离线、零第三方依赖、不接触真实数据。
+
 ### 计划中
 - 数据与备份策略文档（3-2-1、离线与不可变备份、恢复演练）——勒索场景的生死线
 - Linux 侧检测能力验证清单（`linux/linux-detection-validation.md`），验证介质为 auditd / eBPF / journald

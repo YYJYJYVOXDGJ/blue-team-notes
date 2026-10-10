@@ -57,7 +57,7 @@ mcp/
 │       └── linux_quickcheck.py     # Linux 采集产物适配器
 │
 ├── rules/
-│   └── triage-rules.yaml      # 规则库（40 条：10 条关键词规则 + 30 条结构化规则）
+│   └── triage-rules.yaml      # 规则库（37 条：10 条关键词规则 + 27 条结构化规则）
 │
 ├── eval/                      # ★ v0.2 新增：效果评估
 │   ├── run_eval.py            # 评估脚本：量化命中率与误报率
@@ -115,9 +115,15 @@ python bench/bench_parse.py            # 性能基准
 ### 第四步：启动 MCP Server（需安装 mcp 包）
 
 ```bash
-pip install "mcp[cli]"
+pip install "mcp[cli]>=1.28.1,<2"
 mcp dev server.py                      # 用 Inspector 验证
 ```
+
+> ⚠️ **必须锁 `mcp<2`**：mcp 2.x 把 `FastMCP` 改名为 `MCPServer`
+> （导入路径由 `mcp.server.fastmcp` 变为 `mcp.server.mcpserver`），
+> 本 Server 基于 1.x API 编写，未锁版本时装到 2.x 会直接
+> `ModuleNotFoundError: No module named 'mcp.server.fastmcp'`，Server 起不来。
+> 该版本约束已写入 `requirements.txt`。
 
 ---
 
@@ -198,13 +204,13 @@ python bench/bench_parse.py
 
 ## 规则库
 
-`rules/triage-rules.yaml` 共 **40 条**，分两类：
+`rules/triage-rules.yaml` 共 **37 条**，分两类：
 
 **关键词规则（10 条，v0.1）** —— 匹配文本，用于人工粘贴的告警
 `MINING-001` `WEBSHELL-001` `PERSIST-001` `PERSIST-002` `EXEC-001` `CRED-001`
 `C2-001` `EXEC-002` `COLLECT-001` `DEFENSE-001`
 
-**结构化规则（30 条，v0.2）** —— 直接比对采集产物的字段，用于自动化研判
+**结构化规则（27 条，v0.2）** —— 直接比对采集产物的字段，用于自动化研判
 
 | 前缀 | 覆盖 | 示例 |
 |---|---|---|
@@ -318,7 +324,7 @@ result["auto_action_allowed"]   = False    # 硬编码
 
 ## 能力边界（如实说明）
 
-**能做的**：把两套采集脚本的产物归一化，按 40 条规则做确定性初筛，
+**能做的**：把两套采集脚本的产物归一化，按 37 条规则做确定性初筛，
 输出带 ATT&CK 映射、误报提示、人工验证步骤的可疑项清单，并可量化效果与性能。
 
 **不能做的**：
